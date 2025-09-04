@@ -1,0 +1,412 @@
+List of queries for the database:
+
+1. Retrieve the total number of prescriptions per doctor.
+
+SELECT d.doc_id, COUNT(p.pres_id) AS total_prescriptions
+FROM doctor d
+LEFT JOIN prescription p ON d.doc_id = p.doc_id
+GROUP BY d.doc_id;
+
+
+2. Retrieve the average test cost per prescription.
+
+SELECT p.pres_id, AVG(pt.test_cost) AS avg_test_cost
+FROM prescription p
+LEFT JOIN pres_test pt ON p.pres_id = pt.pres_id
+GROUP BY p.pres_id;
+
+
+3. Find the doctors who have prescribed the most tests.
+
+SELECT d.doc_id, COUNT(pt.pres_id) AS total_tests_prescribed
+FROM doctor d
+LEFT JOIN prescription p ON d.doc_id = p.doc_id
+LEFT JOIN pres_test pt ON p.pres_id = pt.pres_id
+GROUP BY d.doc_id
+ORDER BY total_tests_prescribed DESC
+LIMIT 1;
+
+
+4. Retrieve the patients who have been prescribed the most medicines.
+
+SELECT p.p_id, COUNT(pm.med_id) AS total_medicines_prescribed
+FROM patient p
+LEFT JOIN prescription pr ON p.p_id = pr.p_id
+LEFT JOIN pres_medicine pm ON pr.pres_id = pm.pres_id
+GROUP BY p.p_id
+ORDER BY total_medicines_prescribed DESC
+LIMIT 1;
+
+
+5. Calculate the total cost of all prescriptions.
+
+SELECT SUM(pt.test_cost) AS total_test_cost
+FROM pres_test pt;
+
+
+6. Find the doctor who has treated the most patients.
+
+SELECT d.doc_id, COUNT(DISTINCT r.p_id) AS total_patients_treated
+FROM doctor d
+LEFT JOIN diagnose di ON d.doc_id = di.doc_id
+LEFT JOIN records r ON di.p_id = r.p_id
+GROUP BY d.doc_id
+ORDER BY total_patients_treated DESC
+LIMIT 1;
+
+
+7. Retrieve the patients who have undergone the most tests.
+
+SELECT p.p_id, COUNT(pt.test_id) AS total_tests_undergone
+FROM patient p
+LEFT JOIN prescription pr ON p.p_id = pr.p_id
+LEFT JOIN pres_test pt ON pr.pres_id = pt.pres_id
+GROUP BY p.p_id
+ORDER BY total_tests_undergone DESC
+LIMIT 1;
+
+
+8. Find the most common diagnosis.
+
+SELECT di.Diag_disease, COUNT(di.test_id) AS diagnosis_count
+FROM diagnose di
+GROUP BY di.Diag_disease
+ORDER BY diagnosis_count DESC
+LIMIT 1;
+
+
+9. Retrieve the patients who have been prescribed a specific medicine.
+
+SELECT p.patient_name, m.name
+FROM patient p
+JOIN prescription pr ON p.p_id = pr.p_id
+JOIN pres_medicine pm ON pr.pres_id = pm.pres_id
+JOIN medicine_details m ON pm.med_id = m.med_id
+WHERE m.name = 'Aspirin';
+
+
+10. Calculate the average number of tests per prescription.
+
+SELECT AVG(test_count) AS avg_tests_per_prescription
+FROM (
+    SELECT COUNT(pt.test_id) AS test_count
+    FROM pres_test pt
+    GROUP BY pt.pres_id
+) AS subquery;
+
+
+
+11. Calculate the total revenue generated from tests.
+
+SELECT SUM(pt.test_cost) AS total_test_revenue
+FROM pres_test pt;
+
+
+
+12. Retrieve the patients who have been prescribed tests with a specific result.
+
+SELECT p.patient_name, pt.test_result
+FROM patient p
+JOIN prescription pr ON p.p_id = pr.p_id
+JOIN pres_test pt ON pr.pres_id = pt.pres_id
+WHERE pt.test_result = 'Positive';
+
+
+
+13. Retrieve the patients who have been prescribed tests within a specific date range.
+
+SELECT p.patient_name, pt.test_date
+FROM patient p
+JOIN prescription pr ON p.p_id = pr.p_id
+JOIN pres_test pt ON pr.pres_id = pt.pres_id
+WHERE pt.test_date BETWEEN '2024-01-01' AND '2024-03-31';
+
+
+
+14. Find the number of patients who tested positive for each disease diagnosed by a doctor.
+
+    
+SELECT d.Diag_disease, COUNT(*) AS positive_tests
+FROM diagnose d
+JOIN pres_test pt ON d.test_id = pt.test_id
+WHERE pt.test_result = 'Positive'
+GROUP BY d.Diag_disease;
+    
+
+    
+
+15. Calculate the total cost of tests conducted for each patient.
+
+    
+SELECT p.p_id, SUM(pt.test_cost) AS total_test_cost
+FROM patient p
+JOIN prescription pr ON p.p_id = pr.p_id
+JOIN pres_test pt ON pr.pres_id = pt.pres_id
+GROUP BY p.p_id;
+    
+
+16. List the doctors who have prescribed any medicine.
+
+SELECT d.doc_id, d.speciality
+FROM doctor d
+LEFT JOIN prescription p ON d.doc_id = p.doc_id
+WHERE p.pres_id IS NOT NULL;
+    
+
+17. Find the total revenue generated from all tests with a cost greater than $200.
+
+SELECT SUM(test_cost) AS total_revenue
+FROM pres_test
+WHERE test_cost > 200;
+
+
+18. Find the average cost of tests conducted by doctors in each specialty.
+
+SELECT d.speciality, AVG(pt.test_cost) AS avg_test_cost
+FROM doctor d
+JOIN prescription pr ON d.doc_id = pr.doc_id
+JOIN pres_test pt ON pr.pres_id = pt.pres_id
+GROUP BY d.speciality;
+    
+
+19. List the patients who have undergone tests costing more than the average test cost.
+
+SELECT p.patient_name, pt.test_result, pt.test_cost
+FROM patient p
+JOIN prescription pr ON p.p_id = pr.p_id
+JOIN pres_test pt ON pr.pres_id = pt.pres_id
+WHERE pt.test_cost > (SELECT AVG(test_cost) FROM pres_test);
+  
+
+20. Find the total number of tests conducted by each doctor.
+
+SELECT d.doc_id, COUNT(pt.test_id) AS total_tests
+FROM doctor d
+LEFT JOIN prescription pr ON d.doc_id = pr.doc_id
+LEFT JOIN pres_test pt ON pr.pres_id = pt.pres_id
+GROUP BY d.doc_id;
+
+
+21. Calculate the total bill amount for each patient, including all charges.
+
+SELECT r.p_id,
+SUM(bd.doc_charges + bd.room_charges + bd.med_charges + bd.test_charges + bd.other_charges) AS total_bill_amount
+FROM bill b
+JOIN bill_details bd ON b.bill_id = bd.bill_id
+JOIN patient r ON b.p_id = r.p_id
+GROUP BY r.p_id;
+
+
+22. List the patients who have not been admitted to any room.
+
+SELECT p.patient_name
+FROM patient p
+LEFT JOIN room_info ri ON p.p_id = ri.p_id
+WHERE ri.p_id IS NULL;
+
+
+23. Find the patient with the highest total bill amount.
+
+SELECT p.p_id, p.patient_name, SUM(bd.doc_charges + bd.room_charges + bd.med_charges + bd.test_charges + bd.other_charges) AS total_bill_amount
+FROM patient p
+JOIN bill b ON p.p_id = b.p_id
+JOIN bill_details bd ON b.bill_id = bd.bill_id
+GROUP BY p.p_id, p.patient_name
+ORDER BY total_bill_amount DESC
+FETCH FIRST ROW ONLY;
+ 
+
+24. List the doctors who have prescribed medicine but have not conducted any tests.
+
+SELECT d.doc_id, d.speciality
+FROM doctor d
+LEFT JOIN prescription p ON d.doc_id = p.doc_id
+LEFT JOIN pres_test pt ON p.pres_id = pt.pres_id
+WHERE pt.test_id IS NULL;
+ 
+
+25. Calculate the total number of admissions for each room type.
+
+SELECT rt.type_name, COUNT(ri.room_id) AS total_admissions
+FROM room_info ri
+JOIN room r ON ri.room_id = r.room_id
+JOIN room_type rt ON r.type_id = rt.type_id
+GROUP BY rt.type_name;
+ 
+
+26. List the patients who have been admitted to the room with the highest room cost.
+
+SELECT p.patient_name, rt.type_name, MAX(rt.r_cost) AS max_room_cost
+FROM patient p
+JOIN room_info ri ON p.p_id = ri.p_id
+JOIN room r ON ri.room_id = r.room_id
+JOIN room_type rt ON r.type_id = rt.type_id
+GROUP BY p.patient_name, rt.type_name
+ORDER BY max_room_cost DESC
+FETCH FIRST ROW ONLY;
+ 
+
+27. Find the number of patients diagnosed with each disease and their respective genders.
+
+SELECT d.Diag_disease, p.pgender, COUNT(*) AS patient_count
+FROM diagnose d
+JOIN patient p ON d.p_id = p.p_id
+GROUP BY d.Diag_disease, p.pgender;
+
+  
+
+28. List the nurses who have been assigned night shifts.
+
+SELECT s.staff_name, n.shift_type
+FROM nurse n
+JOIN staff s ON n.nurse_id = s.staff_id
+WHERE n.shift_type = 'Night Shift';
+ 
+
+29. Find the total number of prescriptions for each patient.
+
+SELECT p.p_id, p.patient_name, COUNT(pr.pres_id) AS total_prescriptions
+FROM patient p
+LEFT JOIN prescription pr ON p.p_id = pr.p_id
+GROUP BY p.p_id, p.patient_name;
+ 
+
+30. List the doctors and their specialities for patients admitted after '2024-04-05'.
+
+SELECT d.doc_id, d.speciality, p.patient_name, ri.r_entry_date
+FROM doctor d
+JOIN prescription pr ON d.doc_id = pr.doc_id
+JOIN patient p ON pr.p_id = p.p_id
+JOIN room_info ri ON p.p_id = ri.p_id
+WHERE ri.r_entry_date > to_date('2024-04-05', 'yyyy-mm-dd');
+ 
+
+31. Find the top 5 most common diseases diagnosed.
+
+SELECT d.Diag_disease, COUNT(*) AS disease_count
+FROM diagnose d
+GROUP BY d.Diag_disease
+ORDER BY disease_count DESC
+FETCH FIRST 5 ROWS ONLY;
+  
+
+32. List the patients who have undergone tests costing less than 500 and prescribed medicines with dosages.
+
+SELECT p.patient_name, pt.test_result, pt.test_cost, pm.m_qty, pm.m_dosage
+FROM patient p
+JOIN prescription pr ON p.p_id = pr.p_id
+JOIN pres_test pt ON pr.pres_id = pt.pres_id
+JOIN pres_medicine pm ON pr.pres_id = pm.pres_id
+WHERE pt.test_cost < 500;
+ 
+
+33. Calculate the total number of patients admitted to each room type.
+
+SELECT rt.type_name, COUNT(ri.p_id) AS total_admissions
+FROM room_info ri
+JOIN room r ON ri.room_id = r.room_id
+JOIN room_type rt ON r.type_id = rt.type_id
+GROUP BY rt.type_name;
+ 
+
+34. List the patients who have been prescribed medicines by doctors specializing in 'Cardiology'.
+
+SELECT p.patient_name, d.speciality
+FROM patient p
+JOIN prescription pr ON p.p_id = pr.p_id
+JOIN doctor d ON pr.doc_id = d.doc_id
+WHERE d.speciality = 'Cardiology';
+  
+
+35. Find the total number of tests conducted on female patients.
+
+SELECT COUNT(*) AS total_tests_on_females
+FROM pres_test pt
+JOIN prescription pr ON pt.pres_id = pr.pres_id
+JOIN patient p ON pr.p_id = p.p_id
+WHERE p.pgender = 'Female';
+    
+
+36. Calculate the total bill amount for each patient, including all charges, but only for those patients who have been diagnosed with diseases.
+
+SELECT p.patient_name, SUM(bd.doc_charges + bd.room_charges + bd.med_charges + bd.test_charges + bd.other_charges) AS total_bill_amount
+FROM patient p
+JOIN diagnose d ON p.p_id = d.p_id
+JOIN bill b ON p.p_id = b.p_id
+JOIN bill_details bd ON b.bill_id = bd.bill_id
+GROUP BY p.patient_name;
+   
+
+37. List the patients who have undergone tests costing more than 500 and prescribed medicines with dosages, sorted by test cost in descending order.
+
+SELECT p.patient_name, pt.test_result, pt.test_cost, pm.m_qty, pm.m_dosage
+FROM patient p
+JOIN prescription pr ON p.p_id = pr.p_id
+JOIN pres_test pt ON pr.pres_id = pt.pres_id
+JOIN pres_medicine pm ON pr.pres_id = pm.pres_id
+WHERE pt.test_cost > 500
+ORDER BY pt.test_cost DESC;
+
+
+38. Find the average cost of tests conducted for each patient.
+
+SELECT p.patient_name, AVG(pt.test_cost) AS avg_test_cost
+FROM patient p
+JOIN prescription pr ON p.p_id = pr.p_id
+JOIN pres_test pt ON pr.pres_id = pt.pres_id
+GROUP BY p.patient_name;
+ 
+
+39. List the patients who have undergone tests costing less than 200 and have been diagnosed with diseases.
+
+SELECT p.patient_name, pt.test_result, pt.test_cost, d.Diag_disease
+FROM patient p
+JOIN prescription pr ON p.p_id = pr.p_id
+JOIN pres_test pt ON pr.pres_id = pt.pres_id
+JOIN diagnose d ON pt.test_id = d.test_id
+WHERE pt.test_cost < 200;
+ 
+
+40. Calculate the total number of tests conducted for each prescription.
+
+SELECT pr.pres_id, COUNT(pt.test_id) AS total_tests
+FROM prescription pr
+LEFT JOIN pres_test pt ON pr.pres_id = pt.pres_id
+GROUP BY pr.pres_id;
+  
+
+41. List the patients who have been admitted to rooms and have undergone tests.
+
+SELECT p.patient_name, ri.r_entry_date, pt.test_result
+FROM patient p
+JOIN room_info ri ON p.p_id = ri.p_id
+JOIN prescription pr ON p.p_id = pr.p_id
+JOIN pres_test pt ON pr.pres_id = pt.pres_id;
+  
+
+
+
+42. Calculate the total bill amount for each patient, including all charges, but only for those patients who have been discharged.
+
+SELECT p.patient_name, SUM(bd.doc_charges + bd.room_charges + bd.med_charges + bd.test_charges + bd.other_charges) AS total_bill_amount
+FROM patient p
+JOIN room_info ri ON p.p_id = ri.p_id
+JOIN bill b ON p.p_id = b.p_id
+JOIN bill_details bd ON b.bill_id = bd.bill_id
+WHERE ri.r_exit_date IS NOT NULL
+GROUP BY p.patient_name;
+
+
+43. Calculate the total revenue generated from tests.
+
+SELECT SUM(test_cost) AS total_test_revenue
+FROM pres_test;
+
+
+44. Retrieve the patients who have been prescribed tests with a specific result.
+
+SELECT p.patient_name, pt.test_result
+FROM patient p
+JOIN prescription pr ON p.p_id = pr.p_id
+JOIN pres_test pt ON pr.pres_id = pt.pres_id
+WHERE pt.test_result = 'Positive';
